@@ -1,0 +1,174 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+class UnitConverterApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Unit Converter")
+        self.geometry("550x400")
+        self.configure(bg="#2E3440")
+
+        self.style = ttk.Style(self)
+        self.style.theme_use("clam")
+
+        #white
+        self.style.configure("TLabel", background="#2E3440", foreground="#D8DEE9", font=("Helvetica", 12))
+        self.style.configure("TButton", background="#5E81AC", foreground="#ECEFF4", font=("Helvetica", 10))
+
+        #black
+        self.style.configure("TCombobox",
+                             fieldbackground="#3B4252",
+                             background="#3B4252",
+                             foreground="#000000",
+                             font=("Helvetica", 10))
+
+        self.categories = {
+            "Length": {
+                "units": ["Millimeters", "Centimeters", "Meters", "Kilometers", "Inches", "Feet", "Yards", "Miles"],
+                "base": "Meters",
+                "factors": {
+                    "Millimeters": 0.001, "Centimeters": 0.01, "Meters": 1.0, "Kilometers": 1000.0,
+                    "Inches": 0.0254, "Feet": 0.3048, "Yards": 0.9144, "Miles": 1609.34
+                }
+            },
+            "Weight": {
+                "units": ["Milligrams", "Grams", "Kilograms", "Metric Tons", "Ounces", "Pounds", "Stones"],
+                "base": "Grams",
+                "factors": {
+                    "Milligrams": 0.001, "Grams": 1.0, "Kilograms": 1000.0, "Metric Tons": 1e6,
+                    "Ounces": 28.3495, "Pounds": 453.592, "Stones": 6350.29
+                }
+            },
+            "Temperature": {
+                "units": ["Celsius", "Fahrenheit", "Kelvin", "Rankine"]
+            },
+            "Volume": {
+                "units": ["Milliliters", "Liters", "Cups", "Pints", "Quarts", "Gallons"],
+                "base": "Liters",
+                "factors": {
+                    "Milliliters": 0.001, "Liters": 1.0, "Cups": 0.24, "Pints": 0.473176,
+                    "Quarts": 0.946353, "Gallons": 3.78541
+                }
+            },
+            "Time": {
+                "units": ["Seconds", "Minutes", "Hours", "Days", "Weeks", "Months", "Years"],
+                "base": "Seconds",
+                "factors": {
+                    "Seconds": 1.0, "Minutes": 60.0, "Hours": 3600.0, "Days": 86400.0,
+                    "Weeks": 604800.0, "Months": 2629800.0, "Years": 31557600.0
+                }
+            }
+        }
+        self.selected_category = tk.StringVar(value="Length")
+        self.input_value = tk.StringVar()
+        self.from_unit = tk.StringVar()
+        self.to_unit = tk.StringVar()
+
+        self.create_widgets()
+        self.bind("<Return>", lambda event: self.convert())
+
+    def create_widgets(self):
+        title_label = tk.Label(
+            self, text="Unit Converter", font=("Helvetica", 20, "bold"),
+            bg="#2E3440", fg="#88C0D0"
+        )
+        title_label.pack(pady=20)
+
+        cat_frame = tk.Frame(self, bg="#2E3440")
+        cat_frame.pack(pady=5)
+        tk.Label(cat_frame, text="Category: ", font=("Helvetica", 12),
+                 bg="#2E3440", fg="#D8DEE9").pack(side=tk.LEFT, padx=(0, 10))
+        self.category_menu = ttk.Combobox(
+            cat_frame, textvariable=self.selected_category,
+            values=list(self.categories.keys()), state="readonly", width=15
+        )
+        self.category_menu.pack(side=tk.LEFT)
+        self.category_menu.bind("<<ComboboxSelected>>", lambda event: self.update_units())
+
+        input_frame = tk.Frame(self, bg="#2E3440")
+        input_frame.pack(pady=10)
+        tk.Label(input_frame, text="Enter value: ", font=("Helvetica", 12),
+                 bg="#2E3440", fg="#D8DEE9").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Entry(input_frame, textvariable=self.input_value, width=15).pack(side=tk.LEFT)
+
+        unit_frame = tk.Frame(self, bg="#2E3440")
+        unit_frame.pack(pady=15)
+        tk.Label(unit_frame, text="From: ", font=("Helvetica", 12),
+                 bg="#2E3440", fg="#D8DEE9").grid(row=0, column=0, padx=10, pady=5)
+        self.from_menu = ttk.Combobox(
+            unit_frame, textvariable=self.from_unit,
+            values=self.categories[self.selected_category.get()]["units"],
+            state="readonly", width=18
+        )
+        self.from_menu.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(unit_frame, text="To: ", font=("Helvetica", 12),
+                 bg="#2E3440", fg="#D8DEE9").grid(row=1, column=0, padx=10, pady=5)
+        self.to_menu = ttk.Combobox(
+            unit_frame, textvariable=self.to_unit,
+            values=self.categories[self.selected_category.get()]["units"],
+            state="readonly", width=18
+        )
+        self.to_menu.grid(row=1, column=1, padx=10, pady=5)
+
+        ttk.Button(self, text="Convert", command=self.convert).pack(pady=15)
+
+        self.result_label = tk.Label(
+            self, text="Result: ", font=("Helvetica", 14),
+            bg="#2E3440", fg="#D8DEE9"
+        )
+        self.result_label.pack(pady=10)
+
+        self.update_units()
+
+    def update_units(self):
+        category = self.selected_category.get()
+        units = self.categories[category]["units"]
+        self.from_menu['values'] = units
+        self.to_menu['values'] = units
+        self.from_unit.set(units[0])
+        self.to_unit.set(units[1] if len(units) > 1 else units[0])
+
+    def convert(self):
+        try:
+            value = float(self.input_value.get())
+        except:
+            messagebox.showerror("Invalid input", "Enter a valid number.")
+            return
+        category = self.selected_category.get()
+        from_unit = self.from_unit.get()
+        to_unit = self.to_unit.get()
+
+        if category == "Temperature":
+            result = self.convert_temperature(value, from_unit, to_unit)
+        else:
+            factors = self.categories[category]["factors"]
+            value_in_base = value * factors[from_unit]
+            result = value_in_base / factors[to_unit]
+
+        self.result_label.config(text=f"Result: {result:.4f} {to_unit}")
+
+    def convert_temperature(self, value, from_unit, to_unit):
+        if from_unit == to_unit:
+            return value
+        if from_unit == "Celsius":
+            celsius = value
+        elif from_unit == "Fahrenheit":
+            celsius = (value - 32) * 5/9
+        elif from_unit == "Kelvin":
+            celsius = value - 273.15
+        elif from_unit == "Rankine":
+            celsius = (value - 491.67) * 5/9
+
+        if to_unit == "Celsius":
+            return celsius
+        elif to_unit == "Fahrenheit":
+            return celsius * 9/5 + 32
+        elif to_unit == "Kelvin":
+            return celsius + 273.15
+        elif to_unit == "Rankine":
+            return (celsius + 273.15) * 9/5
+
+if __name__ == "__main__":
+    app = UnitConverterApp()
+    app.mainloop()
